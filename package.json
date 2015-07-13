@@ -1,5 +1,5 @@
 {
-  "name": "node-JSAMF",
+  "name": "node-jsamf",
   "version": "1.0.0",
   "description": "Node port of amf.js, written by James Ward",
   "main": "amf.js",
