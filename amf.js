@@ -28,84 +28,86 @@ The views and conclusions contained in the software and documentation are those 
 authors and should not be interpreted as representing official policies, either expressed
 or implied, of James Ward.
 */
-function decodeAMF(data)
-{
-  var bytes = new a3d.ByteArray(data, a3d.Endian.BIG);
-
-  //console.log(dumpHex(bytes));
-
-  var version = bytes.readUnsignedShort();
-  bytes.objectEncoding = a3d.ObjectEncoding.AMF0;
-
-  var response = new a3d.AMFPacket();
-
-  var remainingBytes;
-
-  // Headers
-  var headerCount = bytes.readUnsignedShort();
-  for (var h = 0; h < headerCount; h++)
+module.exports = {
+  decodeAMF: function(data)
   {
-    var headerName = bytes.readUTF();
-    var mustUnderstand = bytes.readBoolean();
-    bytes.readInt(); // Consume header length...
+    var bytes = new a3d.ByteArray(data, a3d.Endian.BIG);
 
-    // Handle AVM+ type marker
-    if (version == a3d.ObjectEncoding.AMF3)
+    //console.log(dumpHex(bytes));
+
+    var version = bytes.readUnsignedShort();
+    bytes.objectEncoding = a3d.ObjectEncoding.AMF0;
+
+    var response = new a3d.AMFPacket();
+
+    var remainingBytes;
+
+    // Headers
+    var headerCount = bytes.readUnsignedShort();
+    for (var h = 0; h < headerCount; h++)
     {
-      var typeMarker = bytes.readByte();
-      if (typeMarker == a3d.Amf0Types.kAvmPlusObjectType)
-        bytes.objectEncoding = a3d.ObjectEncoding.AMF3;
-      else
-        bytes.pos = bytes.pos - 1;
+      var headerName = bytes.readUTF();
+      var mustUnderstand = bytes.readBoolean();
+      bytes.readInt(); // Consume header length...
+
+      // Handle AVM+ type marker
+      if (version == a3d.ObjectEncoding.AMF3)
+      {
+        var typeMarker = bytes.readByte();
+        if (typeMarker == a3d.Amf0Types.kAvmPlusObjectType)
+          bytes.objectEncoding = a3d.ObjectEncoding.AMF3;
+        else
+          bytes.pos = bytes.pos - 1;
+      }
+
+      var headerValue = bytes.readObject();
+
+     /*
+       // Read off the remaining bytes to account for the reset of
+       // the by-reference index on each header value
+       remainingBytes = new a3d.ByteArray();
+       remainingBytes.objectEncoding = bytes.objectEncoding;
+       bytes.readBytes(remainingBytes, 0, bytes.length - bytes.pos);
+       bytes = remainingBytes;
+       remainingBytes = null;
+       */
+      
+      var header = new a3d.AMFHeader(headerName, mustUnderstand, headerValue);
+      response.headers.push(header);
+
+      // Reset to AMF0 for next header
+      bytes.objectEncoding = a3d.ObjectEncoding.AMF0;
     }
 
-    var headerValue = bytes.readObject();
-
-   /*
-     // Read off the remaining bytes to account for the reset of
-     // the by-reference index on each header value
-     remainingBytes = new a3d.ByteArray();
-     remainingBytes.objectEncoding = bytes.objectEncoding;
-     bytes.readBytes(remainingBytes, 0, bytes.length - bytes.pos);
-     bytes = remainingBytes;
-     remainingBytes = null;
-     */
-    
-    var header = new a3d.AMFHeader(headerName, mustUnderstand, headerValue);
-    response.headers.push(header);
-
-    // Reset to AMF0 for next header
-    bytes.objectEncoding = a3d.ObjectEncoding.AMF0;
-  }
-
-  // Message Bodies
-  var messageCount = bytes.readUnsignedShort();
-  for (var m = 0; m < messageCount; m++)
-  {
-    var targetURI = bytes.readUTF();
-    var responseURI = bytes.readUTF();
-    bytes.readInt(); // Consume message body length...
-
-    // Handle AVM+ type marker
-    if (version == a3d.ObjectEncoding.AMF3)
+    // Message Bodies
+    var messageCount = bytes.readUnsignedShort();
+    for (var m = 0; m < messageCount; m++)
     {
-      var typeMarker = bytes.readByte();
-      if (typeMarker == a3d.Amf0Types.kAvmPlusObjectType)
-        bytes.objectEncoding = a3d.ObjectEncoding.AMF3;
-      else
-        bytes.pos = bytes.pos - 1;
+      var targetURI = bytes.readUTF();
+      var responseURI = bytes.readUTF();
+      bytes.readInt(); // Consume message body length...
+
+      // Handle AVM+ type marker
+      if (version == a3d.ObjectEncoding.AMF3)
+      {
+        var typeMarker = bytes.readByte();
+        if (typeMarker == a3d.Amf0Types.kAvmPlusObjectType)
+          bytes.objectEncoding = a3d.ObjectEncoding.AMF3;
+        else
+          bytes.pos = bytes.pos - 1;
+      }
+
+      var messageBody = bytes.readObject();
+
+      var message = new a3d.AMFMessage(targetURI, responseURI, messageBody);
+      response.messages.push(message);
+
+      bytes.objectEncoding = a3d.ObjectEncoding.AMF0;
     }
 
-    var messageBody = bytes.readObject();
-
-    var message = new a3d.AMFMessage(targetURI, responseURI, messageBody);
-    response.messages.push(message);
-
-    bytes.objectEncoding = a3d.ObjectEncoding.AMF0;
+    return response;
   }
-
-  return response;
-}
+};
 
 function dumpHex(bytes)
 {
@@ -200,11 +202,7 @@ function writeChunk(chunk, width)
  * Date: 01/12/2010
  */
 
-if (typeof(a3d) == 'undefined')
-{
-  /** @namespace */
-  a3d = {};
-}
+var a3d = {};
 
 // Taken from http://ejohn.org/blog/simple-javascript-inheritance/
 
@@ -1078,4 +1076,4 @@ a3d.ByteArray = Class.extend({
     }
 
   }
-});
+})

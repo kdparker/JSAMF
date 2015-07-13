@@ -1,0 +1,28 @@
+{
+  "name": "node-JSAMF",
+  "version": "1.0.0",
+  "description": "Node port of amf.js, written by James Ward",
+  "main": "amf.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kdparker/JSAMF.git"
+  },
+  "keywords": [
+    "jsamf",
+    "node-jsamf",
+    "amf",
+    "action",
+    "message",
+    "format",
+    "flash"
+  ],
+  "author": "Keegan Parker <keegandparker@gmail.com> (http://keeganparker.com/)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kdparker/JSAMF/issues"
+  },
+  "homepage": "https://github.com/kdparker/JSAMF"
+}
